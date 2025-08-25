@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام تحليل المهارات للفصول المتعددة</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            direction: rtl;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            min-height: 80vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #ecf0f1;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+
+        /* صفحة رفع الملف */
+        .upload-page {
+            display: block;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 20px;
+            padding: 60px;
+            margin: 40px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: #e3f2fd;
+            transform: translateY(-5px);
+        }
+
+        .upload-area.dragover {
+            border-color: #27ae60;
+            background: #d4edda;
+        }
+
+        .upload-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+
+        .upload-text {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .upload-subtext {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        .upload-button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(52, 152, 219, 0.3);
+        }
+
+        .upload-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(52, 152, 219, 0.4);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-info {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .sample-button {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(155, 89, 182, 0.3);
+        }
+
+        .sample-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4);
+        }
+
+        /* صفحة اختيار الفصل */
+        .class-selection-page {
+            display: none;
+        }
+
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .class-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .class-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .class-card:hover::before {
+            transform: translateX(0);
+        }
+
+        .class-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            border-color: #3498db;
+        }
+
+        .class-a .class-card::before { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .class-a .class-card:hover { border-color: #e74c3c; }
+
+        .class-b .class-card::before { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .class-b .class-card:hover { border-color: #3498db; }
+
+        .class-c .class-card::before { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .class-c .class-card:hover { border-color: #2ecc71; }
+
+        .class-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .class-title {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .class-stats {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .view-class-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .class-a .view-class-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .class-c .view-class-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        /* صفحة التحليل */
+        .analysis-page {
+            display: none;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(127, 140, 141, 0.3);
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+        }
+
+        .analysis-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #fff, #f8f9fa);
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            height: 250px; /* حجم ثابت للكونتينر */
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .chart-canvas {
+            height: 180px !important;
+            max-height: 180px !important;
+        }
+
+        .insights-section {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .insights-title {
+            color: #856404;
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .insight-item {
+            background: rgba(255,255,255,0.7);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-right: 4px solid #f39c12;
+        }
+
+        .table-section {
+            background: #fff;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .students-table th,
+        .students-table td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .students-table th {
+            background: #495057;
+            color: white;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+
+        .students-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .students-table tr.performance-excellent {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
+            border: 1px solid #28a745;
+        }
+
+        .students-table tr.performance-good {
+            background: linear-gradient(135deg, #cce5ff, #b3d9ff) !important;
+            border: 1px solid #007bff;
+        }
+
+        .students-table tr.performance-average {
+            background: linear-gradient(135deg, #fff3cd, #ffeb9c) !important;
+            border: 1px solid #ffc107;
+        }
+
+        .students-table tr.performance-needs-support {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb) !important;
+            border: 1px solid #dc3545;
+        }
+
+        .students-table tr:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .students-table tr.performance-excellent {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
+            border: 1px solid #28a745;
+        }
+
+        .students-table tr.performance-good {
+            background: linear-gradient(135deg, #cce5ff, #b3d9ff) !important;
+            border: 1px solid #007bff;
+        }
+
+        .students-table tr.performance-average {
+            background: linear-gradient(135deg, #fff3cd, #ffeb9c) !important;
+            border: 1px solid #ffc107;
+        }
+
+        .students-table tr.performance-needs-support {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb) !important;
+            border: 1px solid #dc3545;
+        }
+
+        .students-table tr:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .skill-pass {
+            background: #28a745 !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .skill-fail {
+            background: #dc3545 !important;
+            color: white;
+            font-weight: bold;
+        }
+
+        .performance-excellent { background: #d4edda !important; }
+        .performance-good { background: #cce5ff !important; }
+        .performance-average { background: #fff3cd !important; }
+        .performance-needs-support { background: #f8d7da !important; }
+
+        .print-button {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.3);
+        }
+
+        .print-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.5em;
+            color: #3498db;
+        }
+
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+            
+            .classes-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .analysis-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+        }
+
+        @media print {
+            .back-button, .upload-page, .class-selection-page, .print-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- الصفحة الأولى: رفع الملف -->
+        <div id="uploadPage" class="upload-page">
+            <div class="header">
+                <h1>🏫 نظام تحليل المهارات للفصول المتعددة</h1>
+                <p>ارفع ملف البيانات وابدأ التحليل</p>
+            </div>
+            
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">اسحب ملف CSV هنا أو اضغط للاختيار</div>
+                <button class="upload-button" type="button">📁 اختيار ملف</button>
+            </div>
+            
+            <input type="file" id="fileInput" accept=".csv" />
+            
+            <div id="fileStatus"></div>
+            
+        
+        </div>
+
+        <!-- الصفحة الثانية: اختيار الفصل -->
+        <div id="classSelectionPage" class="class-selection-page">
+            <div class="header">
+                <h1>📚 اختر الفصل للتحليل</h1>
+                <p>اختر الفصل الذي تريد عرض تحليله التفصيلي</p>
+            </div>
+            
+            <div id="classesGrid" class="classes-grid">
+                <!-- سيتم ملء الفصول هنا ديناميكياً -->
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="back-button" onclick="showUploadPage()">
+                    ← العودة لرفع ملف جديد
+                </button>
+            </div>
+        </div>
+
+        <!-- الصفحة الثالثة: التحليل -->
+        <div id="analysisPage" class="analysis-page">
+            <button class="back-button" onclick="showClassSelection()">
+                ← العودة لاختيار الفصول
+            </button>
+            
+            <div class="analysis-header">
+                <div id="analysisTitle" class="analysis-title">
+                    🔴 خامس أ
+                </div>
+                <button class="print-button" onclick="printCurrentAnalysis()">
+                    🖨️ طباعة التقرير
+                </button>
+            </div>
+            
+            <div id="statsCards" class="stats-cards">
+                <!-- إحصائيات الفصل -->
+            </div>
+            
+            <div class="charts-section">
+                <div class="chart-container">
+                    <div class="chart-title">📊 معدلات النجاح</div>
+                    <canvas id="skillsChart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">🎯 توزيع الأداء</div>
+                    <canvas id="performanceChart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">📈 مقارنة المهارات</div>
+                    <canvas id="detailedChart" class="chart-canvas"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">⭐ الطلاب الحاصلين على الدرجة الكاملة</div>
+                    <canvas id="radarChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+            
+            <div id="insightsSection" class="insights-section">
+                <div class="insights-title">
+                    💡 التحليلات والملاحظات المهمة
+                </div>
+                <div id="insightsList">
+                    <!-- الملاحظات ستظهر هنا -->
+                </div>
+            </div>
+            
+            <div class="table-section">
+                <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">
+                    📋 جدول تفصيلي لأداء الطلاب
+                </h3>
+                <div id="studentsTableContainer">
+                    <!-- جدول الطلاب سيظهر هنا -->
+                </div>
+            </div>
+        </div>
+
+        <!-- رسالة التحميل -->
+        <div id="loadingMessage" class="loading" style="display: none;">
+            ⏳ جاري معالجة البيانات...
+        </div>
+    </div>
+
+    <script>
+        const classNames = {
+            "A": "خامس أ",
+            "B": "رابع أ", 
+            "C": "رابع ب"
+        };
+
+        const skillCounts = {
+            "A": 4, // Class A has 4 skills (skill 5 is empty/null)
+            "B": 5, // Class B has 5 skills  
+            "C": 5  // Class C has 5 skills
+        };
+
+        let allStudentsData = [];
+        let groupedData = {};
+        let currentChartInstances = {};
+        let currentClass = null;
+
+
+
+
+        // إعداد رفع الملف
+        function setupFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.querySelector('.upload-area');
+
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                    fileInput.files = files;
+                    handleFileSelect();
+                }
+            });
+        }
+
+        // التعامل مع اختيار الملف
+        async function handleFileSelect() {
+            const fileInput = document.getElementById('fileInput');
+            const fileStatus = document.getElementById('fileStatus');
+            
+            if (fileInput.files.length === 0) return;
+            
+            const file = fileInput.files[0];
+            
+            if (!file.name.endsWith('.csv')) {
+                fileStatus.innerHTML = '<div style="color: #dc3545; font-weight: bold;">❌ يرجى اختيار ملف CSV</div>';
+                return;
+            }
+            
+            try {
+                document.getElementById('loadingMessage').style.display = 'block';
+                document.getElementById('uploadPage').style.display = 'none';
+                
+                const text = await file.text();
+                const data = parseCSV(text);
+                
+                if (data.length === 0) {
+                    throw new Error('لا توجد بيانات صالحة في الملف');
+                }
+                
+                allStudentsData = data;
+                processData();
+                showClassSelection();
+                
+            } catch (error) {
+                console.error('Error processing file:', error);
+                fileStatus.innerHTML = `<div style="color: #dc3545; font-weight: bold;">❌ خطأ في معالجة الملف: ${error.message}</div>`;
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('uploadPage').style.display = 'block';
+            }
+        }
+
+        // تحليل بيانات CSV
+        function parseCSV(text) {
+            const lines = text.trim().split('\n').map(line => line.replace(/\r$/, ''));
+            if (lines.length < 2) return [];
+            
+            const header = lines[0].split(',').map(h => h.trim());
+            const students = [];
+            
+            console.log(`Header: ${header.join(', ')}`);
+            console.log(`Total lines to process: ${lines.length - 1}`);
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                
+                // Skip empty lines
+                if (values.length < 7 || !values[5]) continue;
+                
+                const student = {
+                    name: values[5] || `طالب ${i}`,
+                    skill1: values[4] === '' ? null : parseInt(values[4]),
+                    skill2: values[3] === '' ? null : parseInt(values[3]),
+                    skill3: values[2] === '' ? null : parseInt(values[2]),
+                    skill4: values[1] === '' ? null : parseInt(values[1]),
+                    skill5: values[0] === '' ? null : parseInt(values[0]),
+                    class: values[6] || 'A' // Read class from column 7
+                };
+                
+                // Only add students with valid class codes and names
+                if (['A', 'B', 'C'].includes(student.class) && student.name.length > 2) {
+                    students.push(student);
+                    console.log(`Added student: ${student.name} - Class: ${student.class}`);
+                }
+            }
+            
+            console.log(`Total students parsed: ${students.length}`);
+            
+            // Count students per class
+            const classCounts = {};
+            students.forEach(student => {
+                classCounts[student.class] = (classCounts[student.class] || 0) + 1;
+            });
+            
+            console.log(`Students per class:`, classCounts);
+            
+            return students;
+        }
+
+        // معالجة البيانات وتجميعها حسب الفصل
+        function processData() {
+            groupedData = {};
+            
+            allStudentsData.forEach(student => {
+                if (!groupedData[student.class]) {
+                    groupedData[student.class] = [];
+                }
+                groupedData[student.class].push(student);
+            });
+        }
+
+        // تحميل البيانات النموذجية
+        function loadSampleData() {
+            document.getElementById('loadingMessage').style.display = 'block';
+            document.getElementById('uploadPage').style.display = 'none';
+            
+            setTimeout(() => {
+                allStudentsData = sampleData;
+                processData();
+                showClassSelection();
+            }, 1000);
+        }
+
+        // عرض صفحة اختيار الفصل
+        function showClassSelection() {
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('uploadPage').style.display = 'none';
+            document.getElementById('analysisPage').style.display = 'none';
+            document.getElementById('classSelectionPage').style.display = 'block';
+            
+            const classesGrid = document.getElementById('classesGrid');
+            classesGrid.innerHTML = '';
+            
+            Object.keys(groupedData).sort().forEach(classCode => {
+                const students = groupedData[classCode];
+                const stats = calculateClassStats(students, classCode);
+                
+                const classCard = document.createElement('div');
+                classCard.className = `class-card class-${classCode.toLowerCase()}`;
+                classCard.onclick = () => showAnalysis(classCode);
+                
+                const icon = classCode === 'A' ? '🔴' : classCode === 'B' ? '🔵' : '🟢';
+                
+                classCard.innerHTML = `
+                    <div class="class-icon">${icon}</div>
+                    <div class="class-title">${classNames[classCode]}</div>
+                    <div class="class-stats">
+                        ${stats.total} طلاب • ${skillCounts[classCode]} مهارات<br>
+                        متوسط النجاح: ${stats.avgSkills}/${skillCounts[classCode]}
+                    </div>
+                    <button class="view-class-btn">عرض التحليل</button>
+                `;
+                
+                classesGrid.appendChild(classCard);
+            });
+        }
+
+        // عرض صفحة التحليل
+        function showAnalysis(classCode) {
+            currentClass = classCode;
+            
+            document.getElementById('classSelectionPage').style.display = 'none';
+            document.getElementById('analysisPage').style.display = 'block';
+            
+            const students = groupedData[classCode];
+            const stats = calculateClassStats(students, classCode);
+            
+            // تحديث العنوان
+            const icon = classCode === 'A' ? '🔴' : classCode === 'B' ? '🔵' : '🟢';
+            document.getElementById('analysisTitle').innerHTML = `${icon} ${classNames[classCode]}`;
+            
+            // إنشاء كروت الإحصائيات
+            createStatsCards(stats);
+            
+            // إنشاء الرسوم البيانية
+            createCharts(stats, classCode);
+            
+            // إنشاء الملاحظات
+            createInsights(stats, classCode);
+            
+            // إنشاء جدول الطلاب
+            createStudentsTable(stats, classCode);
+        }
+
+        // حساب إحصائيات الفصل
+        function calculateClassStats(students, classCode) {
+            const total = students.length;
+            const maxSkills = skillCounts[classCode];
+            
+            const skillStats = {};
+            for (let i = 1; i <= maxSkills; i++) {
+                skillStats[`skill${i}`] = students.filter(s => s[`skill${i}`] === 1).length;
+            }
+            
+            const studentsWithTotals = students.map(s => {
+                let totalSkills = 0;
+                for (let i = 1; i <= maxSkills; i++) {
+                    if (s[`skill${i}`] === 1) totalSkills++;
+                }
+                
+                return {
+                    ...s,
+                    totalSkills,
+                    percentage: ((totalSkills / maxSkills) * 100).toFixed(1)
+                };
+            });
+            
+            const avgSkills = (studentsWithTotals.reduce((sum, s) => sum + s.totalSkills, 0) / total).toFixed(1);
+            const excellent = studentsWithTotals.filter(s => s.totalSkills === maxSkills).length;
+            const needsSupport = studentsWithTotals.filter(s => s.totalSkills <= 1).length;
+            
+            console.log(`Class ${classCode} stats:`, {
+                total,
+                maxSkills,
+                avgSkills,
+                excellent,
+                needsSupport
+            });
+            
+            return {
+                total,
+                skillStats,
+                avgSkills,
+                excellent,
+                needsSupport,
+                maxSkills,
+                students: studentsWithTotals.sort((a, b) => b.totalSkills - a.totalSkills)
+            };
+        }
+
+        // إنشاء كروت الإحصائيات
+        function createStatsCards(stats) {
+            const container = document.getElementById('statsCards');
+            container.innerHTML = `
+                <div class="stat-card">
+                    <span class="stat-number">${stats.total}</span>
+                    <div class="stat-label">إجمالي الطلاب</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">${stats.avgSkills}</span>
+                    <div class="stat-label">متوسط المهارات</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">${stats.excellent}</span>
+                    <div class="stat-label">الطلاب المتميزون</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">${stats.needsSupport}</span>
+                    <div class="stat-label">يحتاجون دعم</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">${stats.maxSkills}</span>
+                    <div class="stat-label">عدد المهارات</div>
+                </div>
+            `;
+        }
+
+        // إنشاء الرسوم البيانية
+        function createCharts(stats, classCode) {
+            // تنظيف الرسوم البيانية السابقة
+            Object.values(currentChartInstances).forEach(chart => chart.destroy());
+            currentChartInstances = {};
+
+            const { skillStats, total, maxSkills } = stats;
+            
+            // بيانات المهارات
+            const skillLabels = [];
+            const skillData = [];
+            const skillColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+            
+            for (let i = 1; i <= maxSkills; i++) {
+                skillLabels.push(`المهارة ${i}`);
+                skillData.push((skillStats[`skill${i}`] / total * 100).toFixed(1));
+            }
+            
+            // رسم معدلات النجاح
+            const skillsCtx = document.getElementById('skillsChart').getContext('2d');
+            currentChartInstances.skills = new Chart(skillsCtx, {
+                type: 'bar',
+                data: {
+                    labels: skillLabels,
+                    datasets: [{
+                        label: 'معدل النجاح (%)',
+                        data: skillData,
+                        backgroundColor: skillColors.slice(0, maxSkills),
+                        borderColor: skillColors.slice(0, maxSkills),
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { 
+                                callback: function(value) { return value + '%'; },
+                                font: { size: 10 }
+                            }
+                        },
+                        x: {
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            // رسم توزيع الأداء
+            const performanceDistribution = new Array(maxSkills + 1).fill(0);
+            stats.students.forEach(student => {
+                performanceDistribution[student.totalSkills]++;
+            });
+
+            const perfCtx = document.getElementById('performanceChart').getContext('2d');
+            const perfLabels = [];
+            for (let i = 0; i <= maxSkills; i++) {
+                perfLabels.push(i === 0 ? '0' : i === 1 ? '1' : `${i}`);
+            }
+
+            currentChartInstances.performance = new Chart(perfCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: perfLabels,
+                    datasets: [{
+                        data: performanceDistribution,
+                        backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#20c997', '#28a745', '#6f42c1'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                            labels: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            // رسم المقارنة التفصيلية
+            const detailCtx = document.getElementById('detailedChart').getContext('2d');
+            const passedData = [];
+            const failedData = [];
+            
+            for (let i = 1; i <= maxSkills; i++) {
+                passedData.push(skillStats[`skill${i}`]);
+                failedData.push(total - skillStats[`skill${i}`]);
+            }
+            
+            currentChartInstances.detailed = new Chart(detailCtx, {
+                type: 'bar',
+                data: {
+                    labels: skillLabels,
+                    datasets: [{
+                        label: 'نجح',
+                        data: passedData,
+                        backgroundColor: '#28a745'
+                    }, {
+                        label: 'فشل',
+                        data: failedData,
+                        backgroundColor: '#dc3545'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            labels: { font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            stacked: true,
+                            ticks: { font: { size: 9 } }
+                        },
+                        y: { 
+                            stacked: true, 
+                            beginAtZero: true,
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            // رسم أفضل الطلاب - الطلاب اللي جابوا فل مارك
+            const fullScoreStudents = stats.students.filter(student => student.totalSkills === stats.maxSkills);
+            const radarCtx = document.getElementById('radarChart').getContext('2d');
+            
+            if (fullScoreStudents.length > 0) {
+                // أخذ أول 5 طلاب كحد أقصى للوضوح
+                const studentsToShow = fullScoreStudents.slice(0, 5);
+                
+                currentChartInstances.radar = new Chart(radarCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: skillLabels.map(label => label.replace('المهارة ', 'م')), // اختصار
+                        datasets: studentsToShow.map((student, index) => {
+                            const data = [];
+                            for (let i = 1; i <= maxSkills; i++) {
+                                data.push(student[`skill${i}`] || 0);
+                            }
+                            const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+                            return {
+                                label: student.name.split(' ')[0], // اسم مختصر
+                                data: data,
+                                backgroundColor: `rgba(${colors[index % colors.length].replace('#', '')
+                                    .match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ')}, 0.2)`,
+                                borderColor: colors[index % colors.length],
+                                borderWidth: 2,
+                                pointRadius: 3
+                            };
+                        })
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { 
+                                position: 'bottom',
+                                labels: { font: { size: 9 } }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 1,
+                                ticks: { 
+                                    stepSize: 1,
+                                    font: { size: 8 }
+                                },
+                                pointLabels: {
+                                    font: { size: 9 }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // إذا ما فيه طلاب حققوا فل مارك
+                radarCtx.font = '16px Arial';
+                radarCtx.fillStyle = '#7f8c8d';
+                radarCtx.textAlign = 'center';
+                radarCtx.fillText('لا يوجد طلاب حققوا الدرجة الكاملة', radarCtx.canvas.width/2, radarCtx.canvas.height/2);
+            }
+        }
+
+        // إنشاء الملاحظات
+        function createInsights(stats, classCode) {
+            const insights = [];
+            const { skillStats, total, excellent, needsSupport, maxSkills } = stats;
+            
+            // أفضل وأضعف المهارات
+            const skillRates = [];
+            for (let i = 1; i <= maxSkills; i++) {
+                skillRates.push({
+                    name: `المهارة ${i}`,
+                    rate: skillStats[`skill${i}`] / total * 100
+                });
+            }
+            
+            const bestSkill = skillRates.reduce((prev, current) => (prev.rate > current.rate) ? prev : current);
+            const worstSkill = skillRates.reduce((prev, current) => (prev.rate < current.rate) ? prev : current);
+            
+            insights.push(`🏆 أقوى المهارات: ${bestSkill.name} بمعدل نجاح ${bestSkill.rate.toFixed(1)}%`);
+            if (worstSkill.rate < 80) {
+                insights.push(`⚠️ المهارة الأضعف: ${worstSkill.name} بمعدل نجاح ${worstSkill.rate.toFixed(1)}% - تحتاج تطوير`);
+            }
+            insights.push(`📊 نسبة الطلاب المتميزين: ${((excellent / total) * 100).toFixed(1)}% (${excellent} من ${total} طالب)`);
+            if (needsSupport > 0) {
+                insights.push(`🔄 الطلاب المحتاجون للدعم: ${needsSupport} طلاب يحتاجون متابعة إضافية`);
+            }
+            insights.push(`📚 فصل ${classNames[classCode]}: يتم تقييم ${maxSkills} مهارات أساسية`);
+            
+            document.getElementById('insightsList').innerHTML = insights.map(insight => 
+                `<div class="insight-item">${insight}</div>`
+            ).join('');
+        }
+
+        // إنشاء جدول الطلاب
+        function createStudentsTable(stats, classCode) {
+            const maxSkills = skillCounts[classCode];
+            
+            let tableHTML = `
+                <table class="students-table">
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>`;
+            
+            for (let i = 1; i <= maxSkills; i++) {
+                tableHTML += `<th>المهارة ${i}</th>`;
+            }
+            
+            tableHTML += `
+                            <th>المجموع</th>
+                            <th>النسبة المئوية</th>
+                            <th>التقييم</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            stats.students.forEach(student => {
+                let performanceClass = '';
+                let performanceLabel = '';
+                
+                const percentage = (student.totalSkills / maxSkills) * 100;
+                
+                if (percentage >= 90) {
+                    performanceClass = 'performance-excellent';
+                    performanceLabel = 'متميز';
+                } else if (percentage >= 70) {
+                    performanceClass = 'performance-good';
+                    performanceLabel = 'جيد';
+                } else if (percentage >= 50) {
+                    performanceClass = 'performance-average';
+                    performanceLabel = 'متوسط';
+                } else {
+                    performanceClass = 'performance-needs-support';
+                    performanceLabel = 'يحتاج دعم';
+                }
+                
+                tableHTML += `<tr class="${performanceClass}">
+                    <td><strong>${student.name}</strong></td>`;
+                
+                for (let i = 1; i <= maxSkills; i++) {
+                    const skillValue = student[`skill${i}`];
+                    tableHTML += `<td class="${skillValue ? 'skill-pass' : 'skill-fail'}">${skillValue ? '✓' : '✗'}</td>`;
+                }
+                
+                tableHTML += `
+                    <td><strong>${student.totalSkills}/${maxSkills}</strong></td>
+                    <td><strong>${student.percentage}%</strong></td>
+                    <td><strong>${performanceLabel}</strong></td>
+                </tr>`;
+            });
+            
+            tableHTML += `</tbody></table>`;
+            document.getElementById('studentsTableContainer').innerHTML = tableHTML;
+        }
+
+        // العودة لصفحة رفع الملف
+        function showUploadPage() {
+            document.getElementById('classSelectionPage').style.display = 'none';
+            document.getElementById('analysisPage').style.display = 'none';
+            document.getElementById('uploadPage').style.display = 'block';
+            
+            // إعادة تعيين البيانات
+            allStudentsData = [];
+            groupedData = {};
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileStatus').innerHTML = '';
+        }
+
+        // طباعة التقرير الحالي مع الرسوم البيانية
+        async function printCurrentAnalysis() {
+            if (!currentClass) return;
+            
+            const students = groupedData[currentClass];
+            const stats = calculateClassStats(students, currentClass);
+            const className = classNames[currentClass];
+            const skillCount = skillCounts[currentClass];
+            
+            // محاولة تحويل الرسوم البيانية إلى صور مع معالجة الأخطاء
+            let skillsChartImage = '';
+            let performanceChartImage = '';
+            let detailedChartImage = '';
+            let radarChartImage = '';
+            
+            try {
+                // انتظار قليل للتأكد من اكتمال الرسوم
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                skillsChartImage = document.getElementById('skillsChart').toDataURL('image/png', 1.0);
+                performanceChartImage = document.getElementById('performanceChart').toDataURL('image/png', 1.0);
+                detailedChartImage = document.getElementById('detailedChart').toDataURL('image/png', 1.0);
+                radarChartImage = document.getElementById('radarChart').toDataURL('image/png', 1.0);
+                
+                console.log('Charts converted to images successfully');
+            } catch (error) {
+                console.error('Error converting charts to images:', error);
+            }
+            // جمع البيانات للطباعة
+            const insights = [];
+            const { skillStats, total, excellent, needsSupport, maxSkills } = stats;
+            
+            // حساب أفضل وأضعف المهارات
+            const skillRates = [];
+            for (let i = 1; i <= maxSkills; i++) {
+                skillRates.push({
+                    name: `المهارة ${i}`,
+                    rate: skillStats[`skill${i}`] / total * 100,
+                    passed: skillStats[`skill${i}`],
+                    failed: total - skillStats[`skill${i}`]
+                });
+            }
+            
+            const bestSkill = skillRates.reduce((prev, current) => (prev.rate > current.rate) ? prev : current);
+            const worstSkill = skillRates.reduce((prev, current) => (prev.rate < current.rate) ? prev : current);
+            
+            insights.push(`🏆 أقوى المهارات: ${bestSkill.name} بمعدل نجاح ${bestSkill.rate.toFixed(1)}%`);
+            if (worstSkill.rate < 80) {
+                insights.push(`⚠️ المهارة الأضعف: ${worstSkill.name} بمعدل نجاح ${worstSkill.rate.toFixed(1)}% - تحتاج تطوير`);
+            }
+            insights.push(`📊 نسبة الطلاب المتميزين: ${((excellent / total) * 100).toFixed(1)}% (${excellent} من ${total} طالب)`);
+            if (needsSupport > 0) {
+                insights.push(`🔄 الطلاب المحتاجون للدعم: ${needsSupport} طلاب يحتاجون متابعة إضافية`);
+            }
+            
+            // الطلاب الحاصلين على الدرجة الكاملة
+            const fullScoreStudents = stats.students.filter(s => s.totalSkills === maxSkills);
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <title>تقرير ${className} - تحليل المهارات</title>
+                    <meta charset="utf-8">
+                    <style>
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        
+                        body { 
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            direction: rtl; 
+                            margin: 0;
+                            padding: 20px;
+                            line-height: 1.6;
+                            color: #2c3e50;
+                            background: white;
+                        }
+                        
+                        .header {
+                            text-align: center;
+                            background: linear-gradient(135deg, #3498db, #2980b9);
+                            color: white;
+                            padding: 30px;
+                            border-radius: 15px;
+                            margin-bottom: 30px;
+                            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                        }
+                        
+                        .header h1 {
+                            font-size: 2.5em;
+                            margin-bottom: 10px;
+                            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                        }
+                        
+                        .header-info {
+                            background: rgba(255,255,255,0.2);
+                            padding: 15px;
+                            border-radius: 10px;
+                            margin-top: 20px;
+                        }
+                        
+                        .stats-grid {
+                            display: grid;
+                            grid-template-columns: repeat(5, 1fr);
+                            gap: 20px;
+                            margin: 30px 0;
+                        }
+                        
+                        .stat-card {
+                            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                            border: 2px solid #dee2e6;
+                            border-radius: 12px;
+                            padding: 20px;
+                            text-align: center;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                        }
+                        
+                        .stat-number {
+                            font-size: 2.5em;
+                            font-weight: bold;
+                            color: #3498db;
+                            display: block;
+                            margin-bottom: 5px;
+                        }
+                        
+                        .stat-label {
+                            color: #7f8c8d;
+                            font-weight: 600;
+                        }
+                        
+                        .charts-section {
+                            margin: 40px 0;
+                            page-break-inside: avoid;
+                        }
+                        
+                        .charts-section h2 {
+                            text-align: center;
+                            color: #2c3e50;
+                            margin-bottom: 30px;
+                            font-size: 2em;
+                            border-bottom: 3px solid #3498db;
+                            padding-bottom: 10px;
+                        }
+                        
+                        .charts-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 30px;
+                            margin-bottom: 40px;
+                        }
+                        
+                        .chart-item {
+                            text-align: center;
+                            background: #f8f9fa;
+                            padding: 20px;
+                            border-radius: 12px;
+                            border: 2px solid #dee2e6;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                        }
+                        
+                        .chart-item h3 {
+                            color: #2c3e50;
+                            margin-bottom: 15px;
+                            font-size: 1.3em;
+                        }
+                        
+                        .chart-item img {
+                            max-width: 100%;
+                            height: auto;
+                            border-radius: 8px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        }
+                        
+                        .skills-analysis {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 30px;
+                            margin: 30px 0;
+                        }
+                        
+                        .skills-table {
+                            background: #f8f9fa;
+                            border-radius: 12px;
+                            padding: 20px;
+                            border: 2px solid #dee2e6;
+                        }
+                        
+                        .skills-table h3 {
+                            text-align: center;
+                            margin-bottom: 20px;
+                            color: #2c3e50;
+                            font-size: 1.5em;
+                        }
+                        
+                        .skill-row {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 12px;
+                            margin: 8px 0;
+                            background: white;
+                            border-radius: 8px;
+                            border-right: 4px solid #3498db;
+                        }
+                        
+                        .skill-name {
+                            font-weight: bold;
+                            color: #2c3e50;
+                        }
+                        
+                        .skill-stats {
+                            display: flex;
+                            gap: 15px;
+                            font-size: 0.9em;
+                        }
+                        
+                        .pass-rate {
+                            color: #27ae60;
+                            font-weight: bold;
+                        }
+                        
+                        .insights {
+                            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+                            border: 2px solid #ffc107;
+                            border-radius: 12px;
+                            padding: 20px;
+                            margin: 30px 0;
+                        }
+                        
+                        .insights h3 {
+                            color: #856404;
+                            margin-bottom: 15px;
+                            font-size: 1.5em;
+                        }
+                        
+                        .insight-item {
+                            background: rgba(255,255,255,0.7);
+                            padding: 12px;
+                            margin: 10px 0;
+                            border-radius: 8px;
+                            border-right: 4px solid #f39c12;
+                        }
+                        
+                        .students-section {
+                            margin-top: 40px;
+                            page-break-before: auto;
+                        }
+                        
+                        .students-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin: 20px 0;
+                            background: white;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                        }
+                        
+                        .students-table th,
+                        .students-table td {
+                            padding: 12px 8px;
+                            text-align: center;
+                            border: 1px solid #dee2e6;
+                            font-size: 0.9em;
+                        }
+                        
+                        .students-table th {
+                            background: linear-gradient(135deg, #495057, #343a40);
+                            color: white;
+                            font-weight: bold;
+                        }
+                        
+                        .students-table tr:nth-child(even) {
+                            background: #f8f9fa;
+                        }
+
+                        .students-table tr.performance-excellent {
+                            background: linear-gradient(135deg, #d4edda, #c3e6cb) !important;
+                            border: 1px solid #28a745;
+                        }
+
+                        .students-table tr.performance-good {
+                            background: linear-gradient(135deg, #cce5ff, #b3d9ff) !important;
+                            border: 1px solid #007bff;
+                        }
+
+                        .students-table tr.performance-average {
+                            background: linear-gradient(135deg, #fff3cd, #ffeb9c) !important;
+                            border: 1px solid #ffc107;
+                        }
+
+                        .students-table tr.performance-needs-support {
+                            background: linear-gradient(135deg, #f8d7da, #f5c6cb) !important;
+                            border: 1px solid #dc3545;
+                        }
+
+                        .students-table tr:hover {
+                            transform: scale(1.02);
+                            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                            z-index: 1;
+                        }
+                        
+                        .skill-pass { 
+                            background: #28a745 !important; 
+                            color: white; 
+                            font-weight: bold;
+                            border-radius: 4px;
+                        }
+                        
+                        .skill-fail { 
+                            background: #dc3545 !important; 
+                            color: white; 
+                            font-weight: bold;
+                            border-radius: 4px;
+                        }
+                        
+                        .performance-excellent { background: #d4edda !important; }
+                        .performance-good { background: #cce5ff !important; }
+                        .performance-average { background: #fff3cd !important; }
+                        .performance-needs-support { background: #f8d7da !important; }
+                        
+                        .full-score-section {
+                            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                            border: 2px solid #28a745;
+                            border-radius: 12px;
+                            padding: 20px;
+                            margin: 30px 0;
+                        }
+                        
+                        .full-score-section h3 {
+                            color: #155724;
+                            margin-bottom: 15px;
+                            text-align: center;
+                        }
+                        
+                        .full-score-list {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                            gap: 10px;
+                        }
+                        
+                        .full-score-student {
+                            background: rgba(255,255,255,0.8);
+                            padding: 10px;
+                            border-radius: 8px;
+                            text-align: center;
+                            font-weight: bold;
+                            color: #155724;
+                        }
+                        
+                        .footer {
+                            text-align: center;
+                            margin-top: 40px;
+                            padding: 20px;
+                            background: #f8f9fa;
+                            border-radius: 10px;
+                            color: #6c757d;
+                            border-top: 3px solid #3498db;
+                        }
+                        
+                        @page { 
+                            margin: 1.5cm;
+                            size: A4;
+                        }
+                        
+                        @media print {
+                            body { 
+                                font-size: 12px;
+                                line-height: 1.4;
+                            }
+                            
+                            .header h1 {
+                                font-size: 2em;
+                            }
+                            
+                            .stats-grid {
+                                grid-template-columns: repeat(5, 1fr);
+                                gap: 15px;
+                            }
+                            
+                            .charts-grid {
+                                grid-template-columns: 1fr 1fr;
+                                gap: 20px;
+                                page-break-inside: avoid;
+                            }
+                            
+                            .chart-item {
+                                page-break-inside: avoid;
+                            }
+                            
+                            .skills-analysis {
+                                grid-template-columns: 1fr;
+                                gap: 20px;
+                            }
+                            
+                            .stat-number {
+                                font-size: 2em;
+                            }
+                            
+                            .students-section {
+                                page-break-before: always;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>📊 <span style="color: black;">تقرير تحليل المهارات - ${className}</h1></span>
+                        <div class="header-info">
+                            <p><strong>📅 تاريخ التقرير:</strong> ${new Date().toLocaleDateString('ar-SA')}</p>
+                            <p><strong>📚 عدد المهارات المقيمة:</strong> ${skillCount} مهارات</p>
+                            <p><strong>📋 نظام التقييم:</strong> ✓ = نجح، ✗ = لم ينجح</p>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-number">${total}</span>
+                            <div class="stat-label">إجمالي الطلاب</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">${stats.avgSkills}</span>
+                            <div class="stat-label">متوسط المهارات</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">${excellent}</span>
+                            <div class="stat-label">الطلاب المتميزون</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">${needsSupport}</span>
+                            <div class="stat-label">يحتاجون دعم</div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">${skillCount}</span>
+                            <div class="stat-label">عدد المهارات</div>
+                        </div>
+                    </div>
+
+                    <div class="charts-section">
+                        <h2>📈 الرسوم البيانية والتحليل المرئي</h2>
+                        <div class="charts-grid">
+                            <div class="chart-item">
+                                <h3>📊 معدلات النجاح في المهارات</h3>
+                                <img src="${skillsChartImage}" alt="رسم بياني لمعدلات النجاح">
+                            </div>
+                            <div class="chart-item">
+                                <h3>🎯 توزيع مستويات الأداء</h3>
+                                <img src="${performanceChartImage}" alt="رسم بياني لتوزيع الأداء">
+                            </div>
+                            <div class="chart-item">
+                                <h3>📈 مقارنة تفصيلية للمهارات</h3>
+                                <img src="${detailedChartImage}" alt="رسم بياني للمقارنة التفصيلية">
+                            </div>
+                            <div class="chart-item">
+                                <h3>⭐ الطلاب الحاصلين على الدرجة الكاملة</h3>
+                                <img src="${radarChartImage}" alt="رسم بياني للطلاب المتفوقين">
+                            </div>
+                        </div>
+                    </div>
+                    <br><br>
+                    <div class="skills-analysis">
+                        <div class="skills-table">
+                            <h3>📈 تحليل المهارات التفصيلي</h3>
+                            ${skillRates.map(skill => `
+                                <div class="skill-row">
+                                    <div class="skill-name">${skill.name}</div>
+                                    <div class="skill-stats">
+                                        <span class="pass-rate">${skill.rate.toFixed(1)}%</span>
+                                        <span>نجح: ${skill.passed}</span>
+                                        <span>فشل: ${skill.failed}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="skills-table">
+                            <h3>📊 توزيع مستويات الأداء</h3>
+                            <div class="skill-row">
+                                <div class="skill-name">ممتاز (${maxSkills}/${maxSkills})</div>
+                                <div class="skill-stats">
+                                    <span class="pass-rate">${excellent} طلاب</span>
+                                    <span>${((excellent / total) * 100).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <div class="skill-row">
+                                <div class="skill-name">جيد (${maxSkills-1}/${maxSkills})</div>
+                                <div class="skill-stats">
+                                    <span class="pass-rate">${stats.students.filter(s => s.totalSkills === maxSkills-1).length} طلاب</span>
+                                    <span>${(stats.students.filter(s => s.totalSkills === maxSkills-1).length / total * 100).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <div class="skill-row">
+                                <div class="skill-name">يحتاج دعم (≤1)</div>
+                                <div class="skill-stats">
+                                    <span style="color: #dc3545; font-weight: bold;">${needsSupport} طلاب</span>
+                                    <span>${((needsSupport / total) * 100).toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="insights">
+                        <h3>💡 التحليلات والملاحظات المهمة</h3>
+                        ${insights.map(insight => `<div class="insight-item">${insight}</div>`).join('')}
+                    </div>
+                    <br>
+                    ${fullScoreStudents.length > 0 ? `
+                    
+                    ` : '<div class="full-score-section"><h3>📝 لا يوجد طلاب حققوا الدرجة الكاملة في هذا الفصل</h3></div>'}
+
+                    <div class="students-section">
+                        <h3 style="text-align: center; margin-bottom: 20px; color: #2c3e50; font-size: 1.8em;">
+                            📋 جدول تفصيلي لأداء جميع الطلاب
+                        </h3>
+                        <table class="students-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20%;">الاسم</th>
+                                    ${Array.from({length: maxSkills}, (_, i) => `<th>المهارة ${i+1}</th>`).join('')}
+                                    <th>المجموع</th>
+                                    <th>النسبة المئوية</th>
+                                    <th>التقييم</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stats.students.map(student => {
+                                    let performanceClass = '';
+                                    let performanceLabel = '';
+                                    
+                                    const percentage = (student.totalSkills / maxSkills) * 100;
+                                    
+                                    if (percentage >= 90) {
+                                        performanceClass = 'performance-excellent';
+                                        performanceLabel = 'متميز';
+                                    } else if (percentage >= 70) {
+                                        performanceClass = 'performance-good';
+                                        performanceLabel = 'جيد';
+                                    } else if (percentage >= 50) {
+                                        performanceClass = 'performance-average';
+                                        performanceLabel = 'متوسط';
+                                    } else {
+                                        performanceClass = 'performance-needs-support';
+                                        performanceLabel = 'يحتاج دعم';
+                                    }
+                                    
+                                    return `<tr class="${performanceClass}">
+                                        <td style="text-align: right; font-weight: bold;">${student.name}</td>
+                                        ${Array.from({length: maxSkills}, (_, i) => {
+                                            const skillValue = student[`skill${i+1}`];
+                                            return `<td class="${skillValue ? 'skill-pass' : 'skill-fail'}">${skillValue ? '✓' : '✗'}</td>`;
+                                        }).join('')}
+                                        <td style="font-weight: bold;">${student.totalSkills}/${maxSkills}</td>
+                                        <td style="font-weight: bold;">${student.percentage}%</td>
+                                        <td style="font-weight: bold;">${performanceLabel}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // انتظار تحميل المحتوى والصور ثم الطباعة
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 2000);
+        }
+        
+
+        // التهيئة عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            setupFileUpload();
+        });
+
+        // Global functions
+        window.showUploadPage = showUploadPage;
+        window.showClassSelection = showClassSelection;
+        window.loadSampleData = loadSampleData;
+        window.printCurrentAnalysis = printCurrentAnalysis;
+    </script>
+</body>
+</html>
